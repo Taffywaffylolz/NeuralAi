@@ -1,536 +1,1153 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Send, Sparkles, Image, Bot, User, Camera, Mic, Plus, Settings, Moon, Sun, LogIn, Shield, Lock, Eye, EyeOff } from 'lucide-react';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Neural AI</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    :root {
+      --bg-dark: #0a0a11;
+      --bg-card-dark: #121220;
+      --text-dark: #e0e0ff;
+      --purple-500: #8b5cf6;
+      --purple-600: #7c3aed;
+      --purple-700: #6d28d9;
+      --cyan-400: #22d3ee;
+      --border-dark: rgba(120, 100, 255, 0.2);
+    }
 
-// ⚠️ NEVER DO THIS IN PRODUCTION
-const OPENAI_API_KEY = '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';
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+    }
 
-const App = () => {
-  const [messages, setMessages] = useState([
-    { id: 1, type: 'ai', content: "Hello! I'm Neural AI, your advanced AI assistant. I can help with questions, create stunning images, and more. How can I assist you today?" }
-  ]);
-  const [input, setInput] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [darkMode, setDarkMode] = useState(true);
-  const [activeTab, setActiveTab] = useState('chat');
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const [authMode, setAuthMode] = useState('login');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const messagesEndRef = useRef(null);
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      color: var(--text-dark);
+      transition: background 0.5s ease;
+    }
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+    body.light-mode {
+      background: linear-gradient(135deg, #f5f7fa, #e4edf9, #d1e0f5);
+      color: #1e1e2f;
+    }
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
 
-  // 🔥 REAL OpenAI API call (for demo only)
-  const handleSend = async () => {
-    if (!input.trim() || isGenerating) return;
+    /* ===== AUTH SCREEN ===== */
+    .auth-screen {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
 
-    const userMessage = { id: Date.now(), type: 'user', content: input };
-    setMessages(prev => [...prev, userMessage]);
-    setInput('');
-    setIsGenerating(true);
+    .auth-card {
+      width: 100%;
+      max-width: 480px;
+      background: rgba(18, 18, 32, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border-dark);
+      border-radius: 1.5rem;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(139, 92, 246, 0.2);
+      overflow: hidden;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
 
-    // Check if it's an image request
-    const isImageRequest = 
-      input.toLowerCase().includes('image') ||
-      input.toLowerCase().includes('picture') ||
-      input.toLowerCase().includes('draw') ||
-      input.toLowerCase().includes('generate') ||
-      input.toLowerCase().includes('create an image');
+    body.light-mode .auth-card {
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid rgba(139, 92, 246, 0.2);
+      box-shadow: 0 20px 50px rgba(100, 80, 255, 0.1), 0 0 0 1px rgba(139, 92, 246, 0.2);
+    }
 
-    if (isImageRequest) {
-      try {
-        // Call DALL·E via OpenAI
-        const imagePrompt = input.replace(/(image|picture|draw|generate|create an image of|create)/gi, '').trim();
-        
-        const imageResponse = await fetch('https://api.openai.com/v1/images/generations', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${OPENAI_API_KEY}`
-          },
-          body: JSON.stringify({
-            model: "dall-e-3",
-            prompt: imagePrompt,
-            n: 1,
-            size: "1024x1024"
-          })
-        });
+    .auth-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 25px 60px rgba(100, 60, 255, 0.3);
+    }
 
-        const imageData = await imageResponse.json();
-        if (imageData.error) {
-          throw new Error(imageData.error.message || 'Image generation failed');
-        }
+    body.light-mode .auth-card:hover {
+      box-shadow: 0 25px 60px rgba(100, 80, 255, 0.15);
+    }
 
-        const imageUrl = imageData.data[0].url;
-        setMessages(prev => [...prev, {
-          id: Date.now(),
-          type: 'ai',
-          content: `Here’s your AI-generated masterpiece based on: "${imagePrompt}"`,
-          image: imageUrl
-        }]);
-      } catch (err) {
-        console.error('Image generation error:', err);
-        setMessages(prev => [...prev, {
-          id: Date.now(),
-          type: 'ai',
-          content: `❌ Sorry, I couldn’t generate that image. Error: ${err.message || 'Unknown error'}`
-        }]);
-      } finally {
-        setIsGenerating(false);
+    .auth-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .neural-icon {
+      width: 80px;
+      height: 80px;
+      border-radius: 1.25rem;
+      background: linear-gradient(135deg, #8b5cf6, #4f46e5, #22d3ee);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1.25rem;
+      animation: pulseGlow 2s infinite;
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.4); }
+      50% { box-shadow: 0 0 0 12px rgba(139, 92, 246, 0); }
+    }
+
+    .auth-title {
+      font-size: 1.875rem;
+      font-weight: 800;
+      background: linear-gradient(90deg, #c4b5fd, #a5f3fc);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      margin-bottom: 0.5rem;
+    }
+
+    .auth-subtitle {
+      color: #a0a0c0;
+      font-size: 0.875rem;
+    }
+
+    body.light-mode .auth-subtitle {
+      color: #6b7280;
+    }
+
+    .btn-google {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      padding: 0.875rem 1rem;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 0.75rem;
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .btn-google:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    body.light-mode .btn-google {
+      background: rgba(255, 255, 255, 0.8);
+      color: #1e1e2f;
+      border-color: rgba(0, 0, 0, 0.1);
+    }
+
+    body.light-mode .btn-google:hover {
+      background: white;
+    }
+
+    .divider {
+      position: relative;
+      height: 1px;
+      background: var(--border-dark);
+      margin: 1.75rem 0;
+    }
+
+    body.light-mode .divider {
+      background: rgba(139, 92, 246, 0.2);
+    }
+
+    .divider-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: var(--bg-card-dark);
+      padding: 0 0.75rem;
+      font-size: 0.875rem;
+      color: #a0a0c0;
+    }
+
+    body.light-mode .divider-text {
+      background: white;
+      color: #6b7280;
+    }
+
+    .input-group {
+      margin-bottom: 1.25rem;
+    }
+
+    .input-label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: #d0d0e8;
+    }
+
+    body.light-mode .input-label {
+      color: #374151;
+    }
+
+    .input-field {
+      width: 100%;
+      padding: 0.875rem 1rem;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-dark);
+      border-radius: 0.75rem;
+      color: white;
+      font-size: 1rem;
+    }
+
+    .input-field:focus {
+      outline: none;
+      border-color: var(--purple-500);
+      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.3);
+    }
+
+    body.light-mode .input-field {
+      background: rgba(245, 245, 255, 0.8);
+      color: #1e1e2f;
+      border-color: rgba(139, 92, 246, 0.2);
+    }
+
+    .btn-signin {
+      width: 100%;
+      padding: 0.875rem 1rem;
+      background: linear-gradient(135deg, var(--purple-600), var(--purple-700));
+      color: white;
+      font-weight: 600;
+      border: none;
+      border-radius: 0.75rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 20px rgba(124, 60, 233, 0.4);
+    }
+
+    .btn-signin:hover {
+      background: linear-gradient(135deg, var(--purple-700), #5b21b6);
+      box-shadow: 0 6px 25px rgba(124, 60, 233, 0.6);
+    }
+
+    .auth-footer {
+      text-align: center;
+      margin-top: 2rem;
+    }
+
+    .theme-toggle {
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    .theme-toggle:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    body.light-mode .theme-toggle {
+      background: rgba(0, 0, 0, 0.05);
+    }
+
+    body.light-mode .theme-toggle:hover {
+      background: rgba(0, 0, 0, 0.1);
+    }
+
+    /* ===== MAIN APP ===== */
+    .app-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      background: rgba(10, 10, 17, 0.85);
+      border-bottom: 1px solid var(--border-dark);
+      padding: 1rem 0;
+    }
+
+    body.light-mode .app-header {
+      background: rgba(255, 255, 255, 0.85);
+      border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+    }
+
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 0.75rem;
+      background: linear-gradient(135deg, var(--purple-600), #4f46e5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .logo-text {
+      font-size: 1.25rem;
+      font-weight: 800;
+      background: linear-gradient(90deg, #c4b5fd, #a5f3fc);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    .header-btn {
+      width: 2.25rem;
+      height: 2.25rem;
+      border-radius: 0.75rem;
+      background: rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    .header-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    body.light-mode .header-btn {
+      background: rgba(0, 0, 0, 0.05);
+    }
+
+    body.light-mode .header-btn:hover {
+      background: rgba(0, 0, 0, 0.1);
+    }
+
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border-dark);
+      margin: 1.5rem 0 1.5rem;
+    }
+
+    body.light-mode .tabs {
+      border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+    }
+
+    .tab-btn {
+      padding: 0.75rem 1.25rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      background: none;
+      border: none;
+      color: #a0a0c0;
+      cursor: pointer;
+      border-radius: 0.75rem 0.75rem 0 0;
+      transition: color 0.3s ease;
+    }
+
+    .tab-btn.active {
+      color: #c4b5fd;
+      border-bottom: 3px solid var(--purple-500);
+    }
+
+    body.light-mode .tab-btn {
+      color: #6b7280;
+    }
+
+    body.light-mode .tab-btn.active {
+      color: var(--purple-600);
+    }
+
+    .chat-container {
+      display: flex;
+      flex-direction: column;
+      height: 72vh;
+    }
+
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      background: rgba(18, 18, 32, 0.7);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--border-dark);
+      border-radius: 1.25rem;
+      padding: 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+
+    body.light-mode .messages {
+      background: rgba(245, 245, 255, 0.9);
+      border: 1px solid rgba(139, 92, 246, 0.1);
+    }
+
+    .message {
+      display: flex;
+      margin-bottom: 1.25rem;
+      max-width: 85%;
+    }
+
+    .message.ai {
+      justify-content: flex-start;
+    }
+
+    .message.user {
+      justify-content: flex-end;
+    }
+
+    .message-bubble {
+      padding: 1rem 1.25rem;
+      border-radius: 1.25rem;
+      position: relative;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .message.ai .message-bubble {
+      background: rgba(40, 40, 55, 0.7);
+      border: 1px solid var(--border-dark);
+      color: var(--text-dark);
+    }
+
+    body.light-mode .message.ai .message-bubble {
+      background: rgba(245, 245, 255, 0.9);
+      border: 1px solid rgba(139, 92, 246, 0.1);
+      color: #1e1e2f;
+    }
+
+    .message.user .message-bubble {
+      background: linear-gradient(135deg, var(--purple-600), var(--purple-700));
+      color: white;
+    }
+
+    .message-image {
+      display: block;
+      width: 100%;
+      max-height: 24rem;
+      border-radius: 0.75rem;
+      margin-top: 0.75rem;
+      border: 1px solid var(--purple-500);
+    }
+
+    .input-area {
+      display: flex;
+      gap: 0.75rem;
+      background: rgba(18, 18, 32, 0.7);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-dark);
+      border-radius: 1.25rem;
+      padding: 1rem;
+    }
+
+    body.light-mode .input-area {
+      background: rgba(245, 245, 255, 0.8);
+      border: 1px solid rgba(139, 92, 246, 0.15);
+    }
+
+    .text-input {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      background: rgba(30, 30, 45, 0.6);
+      border: 1px solid var(--border-dark);
+      border-radius: 0.875rem;
+      color: white;
+      font-size: 0.9375rem;
+      resize: none;
+      min-height: 48px;
+      max-height: 120px;
+    }
+
+    .text-input:focus {
+      outline: none;
+      border-color: var(--purple-500);
+      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+    }
+
+    body.light-mode .text-input {
+      background: rgba(245, 245, 255, 0.8);
+      color: #1e1e2f;
+      border-color: rgba(139, 92, 246, 0.2);
+    }
+
+    .action-btns {
+      display: flex;
+      gap: 0.5rem;
+      margin-right: 0.5rem;
+      align-self: flex-end;
+    }
+
+    .action-btn {
+      width: 2rem;
+      height: 2rem;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    .action-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .send-btn {
+      width: 2.75rem;
+      height: 2.75rem;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--purple-600), var(--purple-700));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 20px rgba(124, 60, 233, 0.4);
+    }
+
+    .send-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      background: rgba(107, 114, 128, 0.5);
+      box-shadow: none;
+    }
+
+    .send-btn:not(:disabled):hover {
+      background: linear-gradient(135deg, var(--purple-700), #5b21b6);
+      box-shadow: 0 6px 25px rgba(124, 60, 233, 0.6);
+    }
+
+    .image-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .image-card {
+      background: rgba(30, 30, 45, 0.6);
+      border: 1px solid var(--border-dark);
+      border-radius: 1.25rem;
+      overflow: hidden;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .image-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 10px 30px rgba(100, 60, 255, 0.2);
+    }
+
+    .image-placeholder {
+      height: 12rem;
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(34, 211, 238, 0.1));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px dashed rgba(139, 92, 246, 0.3);
+    }
+
+    .image-info {
+      padding: 1rem;
+    }
+
+    .image-title {
+      font-weight: 600;
+      color: #c4b5fd;
+      margin-bottom: 0.25rem;
+    }
+
+    .image-desc {
+      color: #a0a0c0;
+      font-size: 0.8125rem;
+    }
+
+    body.light-mode .image-desc {
+      color: #6b7280;
+    }
+
+    .image-input-area {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      background: rgba(18, 18, 32, 0.7);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-dark);
+      border-radius: 1.25rem;
+      padding: 1.5rem;
+    }
+
+    body.light-mode .image-input-area {
+      background: rgba(245, 245, 255, 0.8);
+      border: 1px solid rgba(139, 92, 246, 0.15);
+    }
+
+    .image-input {
+      flex: 1;
+      min-width: 200px;
+      padding: 0.875rem 1.25rem;
+      background: rgba(30, 30, 45, 0.6);
+      border: 1px solid var(--border-dark);
+      border-radius: 0.875rem;
+      color: white;
+      font-size: 0.9375rem;
+    }
+
+    body.light-mode .image-input {
+      background: rgba(245, 245, 255, 0.8);
+      color: #1e1e2f;
+      border-color: rgba(139, 92, 246, 0.2);
+    }
+
+    .image-actions {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    .idea-btn {
+      padding: 0.875rem 1.25rem;
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--purple-400);
+      font-weight: 600;
+      border: none;
+      border-radius: 0.75rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: background 0.3s ease;
+    }
+
+    .idea-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .generate-btn {
+      padding: 0.875rem 1.5rem;
+      background: linear-gradient(135deg, var(--purple-600), var(--purple-700));
+      color: white;
+      font-weight: 600;
+      border: none;
+      border-radius: 0.75rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 20px rgba(124, 60, 233, 0.4);
+    }
+
+    .generate-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      background: rgba(107, 114, 128, 0.5);
+      box-shadow: none;
+    }
+
+    .generate-btn:not(:disabled):hover {
+      background: linear-gradient(135deg, var(--purple-700), #5b21b6);
+      box-shadow: 0 6px 25px rgba(124, 60, 233, 0.6);
+    }
+
+    .security-banner {
+      position: fixed;
+      bottom: 1.25rem;
+      left: 1.25rem;
+      max-width: 20rem;
+      padding: 0.875rem;
+      border-radius: 0.875rem;
+      background: rgba(127, 29, 29, 0.9);
+      border: 1px solid rgba(185, 28, 28, 0.5);
+      backdrop-filter: blur(8px);
+      color: #fecaca;
+      font-size: 0.75rem;
+      display: flex;
+      gap: 0.5rem;
+      align-items: flex-start;
+      z-index: 1000;
+      animation: floatIn 0.6s ease-out forwards;
+    }
+
+    @keyframes floatIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .typing-indicator {
+      display: flex;
+      gap: 0.375rem;
+      padding: 0.5rem 0;
+    }
+
+    .typing-dot {
+      width: 0.5rem;
+      height: 0.5rem;
+      background: var(--cyan-400);
+      border-radius: 50%;
+      animation: bounce 1.5s infinite ease-in-out;
+    }
+
+    .typing-dot:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .typing-dot:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-0.375rem); }
+    }
+
+    @media (max-width: 768px) {
+      .image-actions {
+        width: 100%;
       }
-    } else {
-      // Regular chat with GPT-4
-      try {
-        const chatMessages = messages
-          .filter(msg => msg.type !== 'system') // ignore any system messages
-          .map(msg => ({
-            role: msg.type === 'user' ? 'user' : 'assistant',
-            content: msg.content
-          }));
-
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${OPENAI_API_KEY}`
-          },
-          body: JSON.stringify({
-            model: "gpt-4-turbo",
-            messages: [
-              {
-                role: "system",
-                content: "You are Neural AI — a brilliant, friendly, and ultra-modern AI assistant. Respond concisely but helpfully. Use emojis sparingly. If asked about images, suggest using the Image Generator tab."
-              },
-              ...chatMessages,
-              { role: "user", content: input }
-            ],
-            temperature: 0.7,
-            max_tokens: 500
-          })
-        });
-
-        const data = await response.json();
-        if (data.error) {
-          throw new Error(data.error.message || 'API error');
-        }
-
-        const aiReply = data.choices[0].message.content;
-        setMessages(prev => [...prev, {
-          id: Date.now(),
-          type: 'ai',
-          content: aiReply
-        }]);
-      } catch (err) {
-        console.error('Chat error:', err);
-        setMessages(prev => [...prev, {
-          id: Date.now(),
-          type: 'ai',
-          content: `⚠️ Neural AI had a hiccup: ${err.message || 'Connection failed. Try again.'}`
-        }]);
-      } finally {
-        setIsGenerating(false);
+      .image-input {
+        width: 100%;
       }
     }
-  };
+  </style>
+</head>
+<body>
+  <!-- Authentication Screen -->
+  <div id="auth-screen" class="auth-screen">
+    <div class="auth-card">
+      <div class="auth-header">
+        <div class="neural-icon">
+          <i data-lucide="sparkles" class="w-10 h-10 text-white"></i>
+        </div>
+        <h1 class="auth-title">Neural AI</h1>
+        <p class="auth-subtitle">Powered by GPT-4 & DALL·E 3</p>
+      </div>
 
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
+      <button id="google-login" class="btn-google">
+        <svg width="20" height="20" viewBox="0 0 24 24">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.66-2.08z" fill="#FBBC05"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+        </svg>
+        Continue with Google
+      </button>
 
-  const handleGoogleLogin = () => {
-    setIsLoggedIn(true);
-    setShowAuthModal(false);
-    setMessages(prev => [...prev, { 
-      id: Date.now(), 
-      type: 'ai', 
-      content: "✨ Welcome back! You're now logged in to Neural AI. Ask me anything or create stunning AI art!" 
-    }]);
-  };
+      <div class="divider">
+        <span class="divider-text">or continue with email</span>
+      </div>
 
-  const generateSampleImage = () => {
-    const prompts = [
+      <div class="input-group">
+        <label class="input-label" for="email">Email</label>
+        <input type="email" id="email" class="input-field" placeholder="your@email.com">
+      </div>
+
+      <div class="input-group">
+        <label class="input-label" for="password">Password</label>
+        <div style="position: relative;">
+          <input type="password" id="password" class="input-field" placeholder="••••••••">
+          <button id="toggle-password" style="position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); background: none; border: none; color: #a0a0c0;">
+            <i data-lucide="eye" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+
+      <button id="signin-btn" class="btn-signin">Sign In</button>
+
+      <div class="auth-footer">
+        <button id="theme-toggle-auth" class="theme-toggle">
+          <i data-lucide="sun" class="w-5 h-5"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main App (Hidden Initially) -->
+  <div id="app" style="display: none;">
+    <header class="app-header">
+      <div class="container header-content">
+        <div class="logo">
+          <div class="logo-icon">
+            <i data-lucide="sparkles" class="w-6 h-6 text-white"></i>
+          </div>
+          <h1 class="logo-text">Neural AI</h1>
+        </div>
+        <div class="header-actions">
+          <button id="theme-toggle-app" class="header-btn">
+            <i data-lucide="sun" class="w-5 h-5"></i>
+          </button>
+          <button id="logout-btn" class="header-btn">
+            <i data-lucide="log-in" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="container">
+      <div class="tabs">
+        <button id="tab-chat" class="tab-btn active"> 
+          <i data-lucide="bot" class="w-4 h-4" style="margin-right: 0.5rem;"></i> Chat
+        </button>
+        <button id="tab-images" class="tab-btn">
+          <i data-lucide="image" class="w-4 h-4" style="margin-right: 0.5rem;"></i> Image Generator
+        </button>
+      </div>
+
+      <!-- Chat Tab -->
+      <div id="chat-tab" class="chat-container">
+        <div class="messages" id="messages">
+          <div class="message ai">
+            <div class="message-bubble">
+              Hello! I'm Neural AI, your advanced AI assistant. I can help with questions, create stunning images, and more. How can I assist you today?
+              <div class="message-time" style="font-size: 0.75rem; margin-top: 0.5rem; color: #a0a0c0;">10:30 AM</div>
+            </div>
+          </div>
+        </div>
+        <div class="input-area">
+          <textarea id="chat-input" class="text-input" placeholder="Message Neural AI (try: 'draw a cyberpunk cat' or 'explain quantum computing')..." rows="1"></textarea>
+          <div class="action-btns">
+            <button class="action-btn">
+              <i data-lucide="plus" class="w-4 h-4"></i>
+            </button>
+            <button class="action-btn">
+              <i data-lucide="mic" class="w-4 h-4"></i>
+            </button>
+          </div>
+          <button id="send-btn" class="send-btn">
+            <i data-lucide="send" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Image Tab (Hidden Initially) -->
+      <div id="images-tab" class="chat-container" style="display: none;">
+        <div class="messages" style="padding: 1.5rem;">
+          <div class="text-center" style="margin-bottom: 2rem;">
+            <h2 class="auth-title" style="font-size: 1.5rem; margin-bottom: 0.75rem;">AI Image Studio</h2>
+            <p class="auth-subtitle">Generate unique images with DALL·E 3. Describe anything!</p>
+          </div>
+          <div class="image-grid">
+            <!-- Sample cards -->
+            <div class="image-card">
+              <div class="image-placeholder">
+                <i data-lucide="sparkles" class="w-8 h-8 text-purple-400"></i>
+              </div>
+              <div class="image-info">
+                <h3 class="image-title">Concept #1</h3>
+                <p class="image-desc">Neural patterns in cosmic void</p>
+              </div>
+            </div>
+            <div class="image-card">
+              <div class="image-placeholder">
+                <i data-lucide="sparkles" class="w-8 h-8 text-purple-400"></i>
+              </div>
+              <div class="image-info">
+                <h3 class="image-title">Concept #2</h3>
+                <p class="image-desc">Futuristic AI city at night</p>
+              </div>
+            </div>
+            <div class="image-card">
+              <div class="image-placeholder">
+                <i data-lucide="sparkles" class="w-8 h-8 text-purple-400"></i>
+              </div>
+              <div class="image-info">
+                <h3 class="image-title">Concept #3</h3>
+                <p class="image-desc">Digital consciousness flow</p>
+              </div>
+            </div>
+            <div class="image-card">
+              <div class="image-placeholder">
+                <i data-lucide="sparkles" class="w-8 h-8 text-purple-400"></i>
+              </div>
+              <div class="image-info">
+                <h3 class="image-title">Concept #4</h3>
+                <p class="image-desc">Holographic AI assistant</p>
+              </div>
+            </div>
+            <div class="image-card">
+              <div class="image-placeholder">
+                <i data-lucide="sparkles" class="w-8 h-8 text-purple-400"></i>
+              </div>
+              <div class="image-info">
+                <h3 class="image-title">Concept #5</h3>
+                <p class="image-desc">Cyberpunk neural network</p>
+              </div>
+            </div>
+            <div class="image-card">
+              <div class="image-placeholder">
+                <i data-lucide="sparkles" class="w-8 h-8 text-purple-400"></i>
+              </div>
+              <div class="image-info">
+                <h3 class="image-title">Concept #6</h3>
+                <p class="image-desc">Stardust feline creature</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="image-input-area">
+          <input type="text" id="image-input" class="image-input" placeholder="Describe your dream image (e.g., 'a cat made of stardust, digital art')...">
+          <div class="image-actions">
+            <button id="idea-btn" class="idea-btn">
+              <i data-lucide="sparkles" class="w-4 h-4"></i> Idea
+            </button>
+            <button id="generate-btn" class="generate-btn">
+              <i data-lucide="camera" class="w-4 h-4"></i> Generate
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <div class="security-banner">
+      <i data-lucide="shield" class="w-4 h-4 flex-shrink-0 mt-0.5"></i>
+      <div>
+        <strong>⚠️ DEMO ONLY:</strong> OpenAI key exposed! Revoke immediately after testing.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Initialize Lucide icons
+    lucide.createIcons();
+
+    // DOM Elements
+    const authScreen = document.getElementById('auth-screen');
+    const app = document.getElementById('app');
+    const messagesContainer = document.getElementById('messages');
+    const chatInput = document.getElementById('chat-input');
+    const sendBtn = document.getElementById('send-btn');
+    const themeToggleAuth = document.getElementById('theme-toggle-auth');
+    const themeToggleApp = document.getElementById('theme-toggle-app');
+    const logoutBtn = document.getElementById('logout-btn');
+    const tabChat = document.getElementById('tab-chat');
+    const tabImages = document.getElementById('tab-images');
+    const chatTab = document.getElementById('chat-tab');
+    const imagesTab = document.getElementById('images-tab');
+    const imageInput = document.getElementById('image-input');
+    const ideaBtn = document.getElementById('idea-btn');
+    const passwordInput = document.getElementById('password');
+    const togglePasswordBtn = document.getElementById('toggle-password');
+
+    // State
+    let darkMode = true;
+    let activeTab = 'chat';
+
+    // Sample prompts for image generator
+    const samplePrompts = [
       "A futuristic neural network glowing in deep space, purple and electric blue, cyberpunk style",
       "An AI brain made of light particles, holographic interface, cinematic lighting",
       "A cosmic purple nebula forming the shape of a thinking brain, ultra-detailed, 8k",
       "Digital consciousness flowing through data rivers, neon violet, sci-fi concept art",
       "Elegant AI assistant as a hologram in a sleek lab, soft ambient light, photorealistic"
     ];
-    const randomPrompt = prompts[Math.floor(Math.random() * prompts.length)];
-    setInput(randomPrompt);
-  };
 
-  if (!isLoggedIn) {
-    return (
-      <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
-        <div className={`w-full max-w-md p-8 rounded-2xl shadow-2xl ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
-          <div className="text-center mb-8">
-            <div className="flex justify-center mb-4">
-              <div className="p-3 rounded-full bg-gradient-to-r from-purple-500 to-purple-700">
-                <Sparkles className="h-8 w-8 text-white" />
-              </div>
-            </div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-purple-600 bg-clip-text text-transparent mb-2">
-              Neural AI
-            </h1>
-            <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              Powered by GPT-4 & DALL·E 3
-            </p>
-          </div>
+    // Utility Functions
+    function getCurrentTime() {
+      return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
 
-          <button
-            onClick={handleGoogleLogin}
-            className="w-full flex items-center justify-center space-x-3 py-3 px-4 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors mb-4"
-          >
-            <svg className="h-5 w-5" viewBox="0 0 24 24">
-              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.66-2.08z" fill="#FBBC05"/>
-              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-            </svg>
-            <span className="font-medium">Continue with Google</span>
-          </button>
+    function addMessage(content, isUser = false, image = null) {
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `message ${isUser ? 'user' : 'ai'}`;
+      
+      let bubbleHTML = `<div class="message-bubble">${content}`;
+      if (image) {
+        bubbleHTML += `<img src="${image}" alt="AI generated" class="message-image">`;
+      }
+      bubbleHTML += `<div class="message-time" style="font-size: 0.75rem; margin-top: 0.5rem; color: #a0a0c0;">${getCurrentTime()}</div></div>`;
+      
+      messageDiv.innerHTML = bubbleHTML;
+      messagesContainer.appendChild(messageDiv);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
 
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className={`w-full border-t ${darkMode ? 'border-gray-700' : 'border-gray-300'}`}></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className={`px-2 ${darkMode ? 'bg-gray-800 text-gray-400' : 'bg-white text-gray-500'}`}>
-                or continue with email
-              </span>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="email" className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
-                  darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-gray-50 border-gray-300 text-gray-900'
-                }`}
-                placeholder="your@email.com"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="password" className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
-                    darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-gray-50 border-gray-300 text-gray-900'
-                  }`}
-                  placeholder="••••••••"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                >
-                  {showPassword ? <EyeOff className="h-5 w-5 text-gray-400" /> : <Eye className="h-5 w-5 text-gray-400" />}
-                </button>
-              </div>
-            </div>
-
-            <button
-              onClick={() => {
-                setIsLoggedIn(true);
-                setMessages(prev => [...prev, { 
-                  id: Date.now(), 
-                  type: 'ai', 
-                  content: "🚀 Welcome to Neural AI! Powered by GPT-4 & DALL·E 3. How can I assist you today?" 
-                }]);
-              }}
-              className="w-full py-3 px-4 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-medium rounded-xl hover:from-purple-700 hover:to-purple-800 transition-colors"
-            >
-              Sign In
-            </button>
-          </div>
-
-          <div className="mt-6 text-center">
-            <button
-              onClick={() => setDarkMode(!darkMode)}
-              className={`p-2 rounded-full ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'}`}
-            >
-              {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-            </button>
+    function showTypingIndicator() {
+      const typingDiv = document.createElement('div');
+      typingDiv.className = 'message ai';
+      typingDiv.id = 'typing-indicator';
+      typingDiv.innerHTML = `
+        <div class="message-bubble" style="background: rgba(40, 40, 55, 0.7); border: 1px solid var(--border-dark);">
+          <div class="typing-indicator">
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
           </div>
         </div>
-      </div>
-    );
-  }
+      `;
+      messagesContainer.appendChild(typingDiv);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
 
-  return (
-    <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
-      {/* Header */}
-      <header className={`sticky top-0 z-10 backdrop-blur-md bg-opacity-80 ${darkMode ? 'bg-gray-800' : 'bg-white'} border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 rounded-lg bg-gradient-to-r from-purple-500 to-purple-700">
-                <Sparkles className="h-6 w-6 text-white" />
-              </div>
-              <h1 className="text-xl font-bold bg-gradient-to-r from-purple-400 to-purple-600 bg-clip-text text-transparent">
-                Neural AI
-              </h1>
-            </div>
-            
-            <div className="flex items-center space-x-4">
-              <button 
-                onClick={() => setDarkMode(!darkMode)}
-                className={`p-2 rounded-full ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'}`}
-              >
-                {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-              </button>
-              <button 
-                onClick={() => setIsLoggedIn(false)}
-                className={`p-2 rounded-full ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'}`}
-              >
-                <LogIn className="h-5 w-5" />
-              </button>
-            </div>
+    function hideTypingIndicator() {
+      const indicator = document.getElementById('typing-indicator');
+      if (indicator) indicator.remove();
+    }
+
+    function simulateAIResponse(userMessage) {
+      showTypingIndicator();
+      
+      // Check if it's an image request
+      const imageKeywords = ['image', 'picture', 'draw', 'generate', 'create'];
+      const isImageRequest = imageKeywords.some(keyword => 
+        userMessage.toLowerCase().includes(keyword)
+      );
+
+      setTimeout(() => {
+        hideTypingIndicator();
+        if (isImageRequest) {
+          // Simulate image generation
+          const cleanPrompt = userMessage.replace(/(image|picture|draw|generate|create)/gi, '').trim();
+          addMessage(`Here’s your AI-generated masterpiece based on: "${cleanPrompt}"`);
+          // In real app: addMessage(..., false, imageUrl);
+        } else {
+          // Simulate chat response
+          const responses = [
+            "I'm Neural AI! How can I assist you today?",
+            "That's an interesting question! Let me think...",
+            "I'd be happy to help with that!",
+            "Thanks for your message! What else can I do for you?",
+            "I'm here to help! Ask me anything."
+          ];
+          const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+          addMessage(randomResponse);
+        }
+      }, 1500);
+    }
+
+    // Event Listeners
+    document.getElementById('signin-btn').addEventListener('click', () => {
+      authScreen.style.display = 'none';
+      app.style.display = 'block';
+      addMessage("✨ Welcome back! You're now logged in to Neural AI. Ask me anything or create stunning AI art!");
+    });
+
+    document.getElementById('google-login').addEventListener('click', () => {
+      authScreen.style.display = 'none';
+      app.style.display = 'block';
+      addMessage("✨ Welcome back! You're now logged in to Neural AI. Ask me anything or create stunning AI art!");
+    });
+
+    sendBtn.addEventListener('click', () => {
+      const message = chatInput.value.trim();
+      if (message) {
+        addMessage(message, true);
+        chatInput.value = '';
+        simulateAIResponse(message);
+      }
+    });
+
+    chatInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendBtn.click();
+      }
+    });
+
+    // Theme toggling
+    function updateThemeIcon() {
+      const authIcon = themeToggleAuth.querySelector('i');
+      const appIcon = themeToggleApp.querySelector('i');
+      if (darkMode) {
+        authIcon.setAttribute('data-lucide', 'sun');
+        appIcon.setAttribute('data-lucide', 'sun');
+      } else {
+        authIcon.setAttribute('data-lucide', 'moon');
+        appIcon.setAttribute('data-lucide', 'moon');
+      }
+      lucide.createIcons();
+    }
+
+    themeToggleAuth.addEventListener('click', () => {
+      darkMode = !darkMode;
+      document.body.classList.toggle('light-mode', !darkMode);
+      updateThemeIcon();
+    });
+
+    themeToggleApp.addEventListener('click', () => {
+      darkMode = !darkMode;
+      document.body.classList.toggle('light-mode', !darkMode);
+      updateThemeIcon();
+    });
+
+    // Tab switching
+    tabChat.addEventListener('click', () => {
+      activeTab = 'chat';
+      tabChat.classList.add('active');
+      tabImages.classList.remove('active');
+      chatTab.style.display = 'flex';
+      imagesTab.style.display = 'none';
+    });
+
+    tabImages.addEventListener('click', () => {
+      activeTab = 'images';
+      tabImages.classList.add('active');
+      tabChat.classList.remove('active');
+      imagesTab.style.display = 'flex';
+      chatTab.style.display = 'none';
+    });
+
+    // Image generator
+    ideaBtn.addEventListener('click', () => {
+      const randomPrompt = samplePrompts[Math.floor(Math.random() * samplePrompts.length)];
+      imageInput.value = randomPrompt;
+    });
+
+    document.getElementById('generate-btn').addEventListener('click', () => {
+      const prompt = imageInput.value.trim();
+      if (prompt) {
+        // Switch to chat tab to show result
+        tabChat.click();
+        addMessage(prompt, true);
+        simulateAIResponse(prompt);
+        imageInput.value = '';
+      }
+    });
+
+    // Password toggle
+    togglePasswordBtn.addEventListener('click', () => {
+      const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+      passwordInput.setAttribute('type', type);
+      const icon = togglePasswordBtn.querySelector('i');
+      icon.setAttribute('data-lucide', type === 'password' ? 'eye' : 'eye-off');
+      lucide.createIcons();
+    });
+
+    // Logout
+    logoutBtn.addEventListener('click', () => {
+      app.style.display = 'none';
+      authScreen.style.display = 'flex';
+      // Clear messages except initial
+      messagesContainer.innerHTML = `
+        <div class="message ai">
+          <div class="message-bubble">
+            Hello! I'm Neural AI, your advanced AI assistant. I can help with questions, create stunning images, and more. How can I assist you today?
+            <div class="message-time" style="font-size: 0.75rem; margin-top: 0.5rem; color: #a0a0c0;">10:30 AM</div>
           </div>
         </div>
-      </header>
+      `;
+    });
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Tabs */}
-        <div className="flex border-b mb-6">
-          <button
-            onClick={() => setActiveTab('chat')}
-            className={`px-4 py-2 font-medium text-sm rounded-t-lg transition-colors ${
-              activeTab === 'chat' 
-                ? (darkMode ? 'bg-gray-800 border-b-2 border-purple-500' : 'bg-white border-b-2 border-purple-500') 
-                : (darkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700')
-            }`}
-          >
-            <div className="flex items-center space-x-2">
-              <Bot className="h-4 w-4" />
-              <span>Chat</span>
-            </div>
-          </button>
-          <button
-            onClick={() => setActiveTab('images')}
-            className={`px-4 py-2 font-medium text-sm rounded-t-lg transition-colors ${
-              activeTab === 'images' 
-                ? (darkMode ? 'bg-gray-800 border-b-2 border-purple-500' : 'bg-white border-b-2 border-purple-500') 
-                : (darkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700')
-            }`}
-          >
-            <div className="flex items-center space-x-2">
-              <Image className="h-4 w-4" />
-              <span>Image Generator</span>
-            </div>
-          </button>
-        </div>
-
-        {/* Chat Interface */}
-        {activeTab === 'chat' && (
-          <div className="flex flex-col h-[70vh]">
-            <div className={`flex-1 overflow-y-auto rounded-xl p-4 mb-4 ${darkMode ? 'bg-gray-800' : 'bg-white'} shadow-lg`}>
-              {messages.map((message) => (
-                <div 
-                  key={message.id} 
-                  className={`flex mb-6 ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div className={`flex max-w-[80%] ${message.type === 'user' ? 'flex-row-reverse' : ''}`}>
-                    <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                      message.type === 'user' 
-                        ? (darkMode ? 'bg-purple-600' : 'bg-purple-500') 
-                        : 'bg-gradient-to-r from-purple-500 to-purple-700'
-                    }`}>
-                      {message.type === 'user' ? <User className="h-4 w-4 text-white" /> : <Bot className="h-4 w-4 text-white" />}
-                    </div>
-                    <div className={`ml-3 ${message.type === 'user' ? 'mr-3' : ''}`}>
-                      <div className={`px-4 py-3 rounded-2xl ${
-                        message.type === 'user' 
-                          ? (darkMode ? 'bg-purple-700' : 'bg-purple-500 text-white') 
-                          : (darkMode ? 'bg-gray-700' : 'bg-gray-200')
-                      }`}>
-                        <p className="whitespace-pre-wrap">{message.content}</p>
-                        {message.image && (
-                          <div className="mt-3 rounded-xl overflow-hidden border border-purple-500/30 shadow-lg">
-                            <img 
-                              src={message.image} 
-                              alt="AI generated" 
-                              className="w-full h-auto"
-                            />
-                          </div>
-                        )}
-                      </div>
-                      <div className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                        {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              {isGenerating && (
-                <div className="flex justify-start mb-6">
-                  <div className="flex max-w-[80%]">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-gradient-to-r from-purple-500 to-purple-700">
-                      <Bot className="h-4 w-4 text-white" />
-                    </div>
-                    <div className="ml-3">
-                      <div className={`px-4 py-3 rounded-2xl ${darkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
-                        <div className="flex space-x-2">
-                          <div className={`w-2 h-2 rounded-full ${darkMode ? 'bg-purple-400' : 'bg-purple-500'} animate-bounce`} style={{ animationDelay: '0ms' }}></div>
-                          <div className={`w-2 h-2 rounded-full ${darkMode ? 'bg-purple-400' : 'bg-purple-500'} animate-bounce`} style={{ animationDelay: '150ms' }}></div>
-                          <div className={`w-2 h-2 rounded-full ${darkMode ? 'bg-purple-400' : 'bg-purple-500'} animate-bounce`} style={{ animationDelay: '300ms' }}></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
-
-            <div className={`flex items-end rounded-xl p-4 ${darkMode ? 'bg-gray-800' : 'bg-white'} shadow-lg`}>
-              <div className="flex-1 relative">
-                <textarea
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={handleKeyPress}
-                  placeholder="Message Neural AI (try: 'draw a cyberpunk cat' or 'explain quantum computing')..."
-                  className={`w-full py-3 px-4 pr-12 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 ${
-                    darkMode ? 'bg-gray-700 text-white placeholder-gray-400' : 'bg-gray-100 text-gray-900 placeholder-gray-500'
-                  }`}
-                  rows="1"
-                  style={{ minHeight: '44px', maxHeight: '120px' }}
-                />
-                <div className="absolute right-3 bottom-3 flex space-x-2">
-                  <button className={`p-1.5 rounded-full ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`}>
-                    <Plus className="h-4 w-4" />
-                  </button>
-                  <button className={`p-1.5 rounded-full ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`}>
-                    <Mic className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-              <button
-                onClick={handleSend}
-                disabled={!input.trim() || isGenerating}
-                className={`ml-3 p-3 rounded-full ${
-                  input.trim() && !isGenerating 
-                    ? 'bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800' 
-                    : (darkMode ? 'bg-gray-700' : 'bg-gray-300')
-                } transition-colors text-white`}
-              >
-                <Send className="h-5 w-5" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Image Generator */}
-        {activeTab === 'images' && (
-          <div className="flex flex-col h-[70vh]">
-            <div className={`flex-1 overflow-y-auto rounded-xl p-6 mb-6 ${darkMode ? 'bg-gray-800' : 'bg-white'} shadow-lg`}>
-              <div className="text-center mb-6">
-                <h2 className="text-xl font-bold mb-2">AI Image Gallery</h2>
-                <p className={darkMode ? 'text-gray-400' : 'text-gray-600'}>
-                  Generate unique images with DALL·E 3. Describe anything!
-                </p>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {[1, 2, 3, 4, 5, 6].map((item) => (
-                  <div 
-                    key={item} 
-                    className={`rounded-xl overflow-hidden border transition-transform hover:scale-[1.02] ${
-                      darkMode ? 'border-gray-700 hover:shadow-purple-900/30' : 'border-gray-200 hover:shadow-purple-200'
-                    } hover:shadow-xl`}
-                  >
-                    <div className="bg-gradient-to-br from-purple-900/10 to-indigo-800/10 border-2 border-dashed border-purple-500/30 rounded-xl w-full h-48 flex items-center justify-center">
-                      <Sparkles className="h-8 w-8 text-purple-400" />
-                    </div>
-                    <div className="p-4">
-                      <h3 className="font-medium mb-1 text-purple-400">Concept #{item}</h3>
-                      <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                        {item % 2 === 0 
-                          ? "Futuristic AI city at night" 
-                          : "Neural patterns in cosmic void"}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            
-            <div className={`flex flex-col sm:flex-row gap-4 rounded-xl p-6 ${darkMode ? 'bg-gray-800' : 'bg-white'} shadow-lg`}>
-              <div className="flex-1">
-                <input
-                  type="text"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder="Describe your dream image (e.g., 'a cat made of stardust, digital art')..."
-                  className={`w-full py-3 px-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 ${
-                    darkMode ? 'bg-gray-700 text-white placeholder-gray-400' : 'bg-gray-100 text-gray-900 placeholder-gray-500'
-                  }`}
-                />
-              </div>
-              <div className="flex space-x-3">
-                <button
-                  onClick={generateSampleImage}
-                  className={`px-4 py-3 rounded-xl flex items-center space-x-2 ${
-                    darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'
-                  } transition-colors`}
-                >
-                  <Sparkles className="h-4 w-4 text-purple-500" />
-                  <span>Idea</span>
-                </button>
-                <button
-                  onClick={handleSend}
-                  disabled={!input.trim() || isGenerating}
-                  className={`px-6 py-3 rounded-xl flex items-center space-x-2 ${
-                    input.trim() && !isGenerating 
-                      ? 'bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800' 
-                      : (darkMode ? 'bg-gray-700' : 'bg-gray-300')
-                  } transition-colors text-white`}
-                >
-                  <Camera className="h-4 w-4" />
-                  <span>Generate</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </main>
-
-      {/* Security Notice */}
-      <div className={`fixed bottom-4 left-4 max-w-xs p-3 rounded-lg flex items-center space-x-2 ${
-        darkMode ? 'bg-red-900/80 text-red-100' : 'bg-red-100 text-red-800'
-      }`}>
-        <Shield className="h-4 w-4 flex-shrink-0" />
-        <p className="text-xs">
-          <strong>DEMO ONLY:</strong> OpenAI key exposed! Revoke immediately after testing.
-        </p>
-      </div>
-    </div>
-  );
-};
-
-export default App;
+    // Initialize theme icon
+    updateThemeIcon();
+  </script>
+</body>
+    </html>
